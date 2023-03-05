@@ -33,9 +33,10 @@ func (d *TagCloud) AddTag(tag string) {
 		d.tagLink[tag] = len(d.tagList) - 1
 	} else {
 		d.tagList[id].OccurrenceCount += 1
-		if id > 0 && d.tagList[id-1].OccurrenceCount < d.tagList[id].OccurrenceCount {
+		for id > 0 && d.tagList[id-1].OccurrenceCount < d.tagList[id].OccurrenceCount {
 			d.tagLink[tag], d.tagLink[d.tagList[id-1].Tag] = d.tagLink[d.tagList[id-1].Tag], d.tagLink[tag]
 			d.tagList[id-1], d.tagList[id] = d.tagList[id], d.tagList[id-1]
+			id -= 1
 		}
 	}
 
