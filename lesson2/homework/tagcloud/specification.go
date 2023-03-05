@@ -1,7 +1,5 @@
 package tagcloud
 
-import "math"
-
 // TagCloud aggregates statistics about used tags
 type TagCloud struct {
 	tagLink map[string]int
@@ -51,9 +49,12 @@ func (d *TagCloud) AddTag(tag string) {
 // TODO: You decide whether receiver should be a pointer or a value
 func (d *TagCloud) TopN(n int) []TagStat {
 	// TODO: Implement this
-	size := int(math.Min(float64(n), float64(len(d.tagList))))
+	size := n
+	if len(d.tagList) < n {
+		size = len(d.tagList)
+	}
 	result := make([]TagStat, size)
-
 	copy(result, d.tagList[:size])
+
 	return result
 }
