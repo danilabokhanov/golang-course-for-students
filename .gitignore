@@ -17,4 +17,5 @@
 .idea
 .DS_Store
 .vscode
-
+lesson3/homework/*.txt
+lesson3/homework/transfer_file
