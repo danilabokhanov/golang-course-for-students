@@ -375,14 +375,22 @@ func main() {
 	}
 	reader := CustomReader{*bufio.NewReader(f), 0, false}
 	if len(opts.To) == 0 {
-		RebuildText(opts, &reader, os.Stdout, textLen, charBlock)
+		err := RebuildText(opts, &reader, os.Stdout, textLen, charBlock)
+		if err != nil {
+			_, _ = fmt.Fprintln(os.Stderr, "can't apply conv's flags", err)
+			os.Exit(1)
+		}
 	} else {
 		fileTo, err := os.Create(opts.To)
 		if err != nil {
 			_, _ = fmt.Fprintln(os.Stderr, "incorrect output file", err)
 			os.Exit(1)
 		}
-		RebuildText(opts, &reader, fileTo, textLen, charBlock)
+		err = RebuildText(opts, &reader, fileTo, textLen, charBlock)
+		if err != nil {
+			_, _ = fmt.Fprintln(os.Stderr, "can't apply conv's flags", err)
+			os.Exit(1)
+		}
 	}
 	err = f.Close()
 	if err != nil {
