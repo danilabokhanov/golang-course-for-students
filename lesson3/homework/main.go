@@ -180,11 +180,11 @@ func RebuildText(opts *Options, reader BlockReader, writer BlockWriter, textSize
 		bgn, text, end := reader.ReadBlock(0, textSize, int(opts.BlockSize))
 
 		RelaxChars(opts, &text, &notSpace, iter == charBlock)
-		writer.Write(bgn)
+		CheckErrorsAndWrite(writer, &bgn)
 		if !(iter > charBlock && opts.Conv.IsContain(TrimSpaces)) {
-			writer.Write(text)
+			CheckErrorsAndWrite(writer, &text)
 		}
-		writer.Write(end)
+		CheckErrorsAndWrite(writer, &end)
 
 		iter++
 	}
@@ -200,6 +200,13 @@ func IsSpaceBlock(text *[]byte) bool {
 	return true
 }
 
+func CheckErrorsAndWrite(writer BlockWriter, text *[]byte) {
+	_, err := writer.Write(*text)
+	if err != nil {
+		log.Fatal(err)
+	}
+}
+
 func TransmitSegment(opts *Options, reader BlockReader, writer BlockWriter, l, r uint64) (uint64, uint64) {
 	var totalLen, iter, charBlock uint64 = 0, 0, 0
 	for !reader.IsEnd() && reader.GetReadPointer() < r {
@@ -208,9 +215,9 @@ func TransmitSegment(opts *Options, reader BlockReader, writer BlockWriter, l, r
 		if !IsSpaceBlock(&text) {
 			charBlock = iter
 		}
-		writer.Write(bgn)
-		writer.Write(text)
-		writer.Write(end)
+		CheckErrorsAndWrite(writer, &bgn)
+		CheckErrorsAndWrite(writer, &text)
+		CheckErrorsAndWrite(writer, &end)
 		iter++
 	}
 	return totalLen, charBlock
