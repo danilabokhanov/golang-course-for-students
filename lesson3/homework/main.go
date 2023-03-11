@@ -21,8 +21,8 @@ const TransferFileName string = "transfer_file"
 
 const (
 	UpperCase  string = "upper_case"
-	LowerCase         = "lower_case"
-	TrimSpaces        = "trim_spaces"
+	LowerCase  string = "lower_case"
+	TrimSpaces string = "trim_spaces"
 )
 
 type ConvArgs []string
