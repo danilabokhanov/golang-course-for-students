@@ -56,13 +56,20 @@ type Options struct {
 	Conv      ConvArgs
 }
 
+type ConvWriter struct {
+	writer io.Writer
+
+	opts Options
+
+	textLen, charBlock uint64
+	notSpace           bool
+}
+
 type BlockReader interface {
 	ReadBlock(uint64, uint64, int) ([]byte, []byte, []byte, error)
 	GetReadPointer() uint64
 	IsEnd() bool
 }
-
-type BlockWriter = io.Writer
 
 type CustomReader struct {
 	Rd bufio.Reader
@@ -143,9 +150,9 @@ func (d *CustomReader) ReadBlock(l, r uint64, size int) ([]byte, []byte, []byte,
 	return bgn, text, end, nil
 }
 
-func RelaxChars(opts *Options, text []byte, notSpace bool, isLastCharBlock bool) ([]byte, bool) {
+func (d *ConvWriter) RelaxChars(text []byte, iter uint64) []byte {
 	s := bytes.Runes(text)
-	if isLastCharBlock && opts.Conv.IsContain(TrimSpaces) {
+	if iter == d.charBlock && d.opts.Conv.IsContain(TrimSpaces) {
 		for i := len(s) - 1; i >= 0; i-- {
 			if !unicode.IsSpace(s[i]) {
 				s = s[:i+1]
@@ -155,41 +162,40 @@ func RelaxChars(opts *Options, text []byte, notSpace bool, isLastCharBlock bool)
 	}
 	res := []rune{}
 	for i := 0; i < len(s); i++ {
-		if opts.Conv.IsContain(TrimSpaces) && unicode.IsSpace(s[i]) && !notSpace {
+		if d.opts.Conv.IsContain(TrimSpaces) && unicode.IsSpace(s[i]) && !d.notSpace {
 			continue
 		}
 		if !unicode.IsSpace(s[i]) {
-			notSpace = true
+			d.notSpace = true
 		}
-		if opts.Conv.IsContain(UpperCase) {
+		if d.opts.Conv.IsContain(UpperCase) {
 			res = append(res, unicode.ToUpper(s[i]))
-		} else if opts.Conv.IsContain(LowerCase) {
+		} else if d.opts.Conv.IsContain(LowerCase) {
 			res = append(res, unicode.ToLower(s[i]))
 		} else {
 			res = append(res, s[i])
 		}
 	}
-	return []byte(string(res)), notSpace
+	return []byte(string(res))
 }
 
-func RebuildText(opts *Options, reader BlockReader, writer BlockWriter, textSize, charBlock uint64) error {
+func RebuildText(reader BlockReader, convWriter *ConvWriter) error {
 	var iter uint64 = 0
-	var notSpace bool = false
-	for !reader.IsEnd() && reader.GetReadPointer() < textSize {
-		bgn, text, end, err := reader.ReadBlock(0, textSize, int(opts.BlockSize))
+	for !reader.IsEnd() && reader.GetReadPointer() < convWriter.textLen {
+		bgn, text, end, err := reader.ReadBlock(0, convWriter.textLen, int(convWriter.opts.BlockSize))
 		if err != nil {
 			return err
 		}
-		text, notSpace = RelaxChars(opts, text, notSpace, iter == charBlock)
-		if err := CheckErrorsAndWrite(writer, bgn); err != nil {
+		text = convWriter.RelaxChars(text, iter)
+		if err := CheckErrorsAndWrite(convWriter.writer, bgn); err != nil {
 			return err
 		}
-		if !(iter > charBlock && opts.Conv.IsContain(TrimSpaces)) {
-			if err := CheckErrorsAndWrite(writer, text); err != nil {
+		if !(iter > convWriter.charBlock && convWriter.opts.Conv.IsContain(TrimSpaces)) {
+			if err := CheckErrorsAndWrite(convWriter.writer, text); err != nil {
 				return err
 			}
 		}
-		if err := CheckErrorsAndWrite(writer, end); err != nil {
+		if err := CheckErrorsAndWrite(convWriter.writer, end); err != nil {
 			return err
 		}
 
@@ -208,104 +214,85 @@ func IsSpaceBlock(text []byte) bool {
 	return true
 }
 
-func CheckErrorsAndWrite(writer BlockWriter, text []byte) error {
+func CheckErrorsAndWrite(writer io.Writer, text []byte) error {
 	_, err := writer.Write(text)
 	return err
 }
 
-func TransmitSegment(opts *Options, reader BlockReader, writer BlockWriter, l, r uint64) (uint64, uint64, error) {
-	var totalLen, iter, charBlock uint64 = 0, 0, 0
+func TransmitSegment(reader BlockReader, convWriter *ConvWriter, l, r uint64) error {
+	var iter uint64 = 0
 	for !reader.IsEnd() && reader.GetReadPointer() < r {
-		bgn, text, end, err := reader.ReadBlock(l, r, int(opts.BlockSize))
+		bgn, text, end, err := reader.ReadBlock(l, r, int(convWriter.opts.BlockSize))
 		if err != nil {
-			return 0, 0, nil
+			return nil
 		}
-		totalLen += uint64(len(bgn)) + uint64(len(text)) + uint64(len(end))
+		convWriter.textLen += uint64(len(bgn)) + uint64(len(text)) + uint64(len(end))
 		if !IsSpaceBlock(text) {
-			charBlock = iter
+			convWriter.charBlock = iter
 		}
-		if err := CheckErrorsAndWrite(writer, bgn); err != nil {
-			return 0, 0, err
+		if err := CheckErrorsAndWrite(convWriter.writer, bgn); err != nil {
+			return err
 		}
-		if err := CheckErrorsAndWrite(writer, text); err != nil {
-			return 0, 0, err
+		if err := CheckErrorsAndWrite(convWriter.writer, text); err != nil {
+			return err
 		}
-		if err := CheckErrorsAndWrite(writer, end); err != nil {
-			return 0, 0, err
+		if err := CheckErrorsAndWrite(convWriter.writer, end); err != nil {
+			return err
 		}
 		iter++
 	}
-	return totalLen, charBlock, nil
+	return nil
 }
 
-func ReadFromStdin(opts *Options) (uint64, uint64, error) {
-	writer, err := os.Create(TransferFileName)
+func ReadFromStdin(convWriter *ConvWriter) error {
+	var err error
+	convWriter.writer, err = os.Create(TransferFileName)
 	if err != nil {
-		return 0, 0, err
+		return err
 	}
 	reader := CustomReader{*bufio.NewReader(os.Stdin), 0, false}
-	l := opts.Offset
-	r := opts.Offset + opts.Limit
-	return TransmitSegment(opts, &reader, writer, l, r)
+	l := convWriter.opts.Offset
+	r := convWriter.opts.Offset + convWriter.opts.Limit
+	return TransmitSegment(&reader, convWriter, l, r)
 }
 
-func ReadFromFile(opts *Options) (uint64, uint64, error) {
-	writer, err := os.Create(TransferFileName)
+func ReadFromFile(convWriter *ConvWriter) error {
+	var err error
+	convWriter.writer, err = os.Create(TransferFileName)
 	if err != nil {
-		return 0, 0, err
+		return err
 	}
-	f, err := os.Open(opts.From)
+	f, err := os.Open(convWriter.opts.From)
 	if err != nil {
-		return 0, 0, err
+		return err
 	}
 	reader := CustomReader{*bufio.NewReader(f), 0, false}
-	l := opts.Offset
-	r := opts.Offset + opts.Limit
+	l := convWriter.opts.Offset
+	r := convWriter.opts.Offset + convWriter.opts.Limit
 
-	textLen, charBlock, err := TransmitSegment(opts, &reader, writer, l, r)
+	err = TransmitSegment(&reader, convWriter, l, r)
 	e := f.Close()
 	if err != nil {
-		return textLen, charBlock, err
+		return err
 	}
-	return textLen, charBlock, e
+	return e
 }
 
-type InputFormatError struct{}
-
-func (d InputFormatError) Error() string {
-	return "Incorrect input data format"
-}
-
-type WrapError struct {
-	Context string
-	Err     error
-}
-
-func (d WrapError) Error() string {
-	if d.Err != nil {
-		return d.Context + ": " + d.Err.Error()
-	}
-	return ""
-}
-
-func (d WrapError) Unwrap() error {
-	return d.Err
-}
-
-func BasicCheck(opts *Options) error {
-	if opts.To != "" {
-		_, err := os.Stat(opts.To)
+func BasicCheck(convWriter *ConvWriter) error {
+	if convWriter.opts.To != "" {
+		_, err := os.Stat(convWriter.opts.To)
 		if err == nil {
-			return WrapError{"A file with that name already exists", InputFormatError{}}
+			return fmt.Errorf("A file with that name already exists")
 		}
 	}
 
-	if opts.Conv.IsContain(LowerCase) && opts.Conv.IsContain(UpperCase) {
-		return WrapError{"using lower_case and upper_case flags together", InputFormatError{}}
+	if convWriter.opts.Conv.IsContain(LowerCase) && convWriter.opts.Conv.IsContain(UpperCase) {
+		return fmt.Errorf("using lower_case and upper_case flags together")
 	}
-	for i := 0; i < len(opts.Conv); i++ {
-		if opts.Conv[i] != LowerCase && opts.Conv[i] != UpperCase && opts.Conv[i] != TrimSpaces {
-			return WrapError{"unexpected conv's argument", InputFormatError{}}
+	for i := 0; i < len(convWriter.opts.Conv); i++ {
+		if convWriter.opts.Conv[i] != LowerCase && convWriter.opts.Conv[i] != UpperCase &&
+			convWriter.opts.Conv[i] != TrimSpaces {
+			return fmt.Errorf("unexpected conv's argument")
 		}
 	}
 	return nil
@@ -331,6 +318,7 @@ func ParseFlags() (*Options, error) {
 
 func main() {
 	opts, err := ParseFlags()
+	convWriter := ConvWriter{opts: *opts}
 	if err != nil {
 		_, _ = fmt.Fprintln(os.Stderr, "can not parse flags:", err)
 		os.Exit(1)
@@ -342,28 +330,27 @@ func main() {
 	if opts.BlockSize < MinimumBlockSize {
 		opts.BlockSize = MinimumBlockSize
 	}
-	err = BasicCheck(opts)
+	err = BasicCheck(&convWriter)
 	if err != nil {
 		_, _ = fmt.Fprintln(os.Stderr, errors.Unwrap(err))
 		os.Exit(1)
 	}
 
-	var textLen, charBlock uint64
 	if len(opts.From) == 0 {
-		textLen, charBlock, err = ReadFromStdin(opts)
+		err = ReadFromStdin(&convWriter)
 		if err != nil {
 			_, _ = fmt.Fprintln(os.Stderr, "Can't transmit from stdin to the transfer file", err)
 			os.Exit(1)
 		}
 	} else {
-		textLen, charBlock, err = ReadFromFile(opts)
+		err = ReadFromFile(&convWriter)
 		if err != nil {
 			_, _ = fmt.Fprintln(os.Stderr, "Can't transmit from input file to the transfer file", err)
 			os.Exit(1)
 		}
 	}
 
-	if textLen == 0 {
+	if convWriter.textLen == 0 {
 		_, _ = fmt.Fprintln(os.Stderr, "offset is too large")
 		os.Exit(1)
 	}
@@ -373,25 +360,23 @@ func main() {
 		_, _ = fmt.Fprintln(os.Stderr, err)
 		os.Exit(1)
 	}
+
 	reader := CustomReader{*bufio.NewReader(f), 0, false}
 	if len(opts.To) == 0 {
-		err := RebuildText(opts, &reader, os.Stdout, textLen, charBlock)
-		if err != nil {
-			_, _ = fmt.Fprintln(os.Stderr, "can't apply conv's flags", err)
-			os.Exit(1)
-		}
+		convWriter.writer = os.Stdout
 	} else {
-		fileTo, err := os.Create(opts.To)
+		convWriter.writer, err = os.Create(opts.To)
 		if err != nil {
 			_, _ = fmt.Fprintln(os.Stderr, "incorrect output file", err)
 			os.Exit(1)
 		}
-		err = RebuildText(opts, &reader, fileTo, textLen, charBlock)
-		if err != nil {
-			_, _ = fmt.Fprintln(os.Stderr, "can't apply conv's flags", err)
-			os.Exit(1)
-		}
 	}
+	err = RebuildText(&reader, &convWriter)
+	if err != nil {
+		_, _ = fmt.Fprintln(os.Stderr, "can't apply conv's flags", err)
+		os.Exit(1)
+	}
+
 	err = f.Close()
 	if err != nil {
 		_, _ = fmt.Fprintln(os.Stderr, "can't close file", err)
