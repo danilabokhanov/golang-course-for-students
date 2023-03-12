@@ -61,8 +61,8 @@ type ConvWriter struct {
 
 	opts Options
 
-	textLen, charBlock uint64
-	notSpace           bool
+	textLen, charBlock, iter  uint64
+	notSpace, isLastCharBlock bool
 }
 
 type BlockReader interface {
@@ -150,9 +150,9 @@ func (d *CustomReader) ReadBlock(l, r uint64, size int) ([]byte, []byte, []byte,
 	return bgn, text, end, nil
 }
 
-func (d *ConvWriter) RelaxChars(text []byte, iter uint64) []byte {
+func (d *ConvWriter) Write(bgn, text, end []byte) error {
 	s := bytes.Runes(text)
-	if iter == d.charBlock && d.opts.Conv.IsContain(TrimSpaces) {
+	if d.isLastCharBlock && d.opts.Conv.IsContain(TrimSpaces) {
 		for i := len(s) - 1; i >= 0; i-- {
 			if !unicode.IsSpace(s[i]) {
 				s = s[:i+1]
@@ -176,30 +176,35 @@ func (d *ConvWriter) RelaxChars(text []byte, iter uint64) []byte {
 			res = append(res, s[i])
 		}
 	}
-	return []byte(string(res))
+
+	text = []byte(string(res))
+	if _, err := d.writer.Write(bgn); err != nil {
+		return err
+	}
+	if !(d.iter > d.charBlock && d.opts.Conv.IsContain(TrimSpaces)) {
+		if _, err := d.writer.Write(text); err != nil {
+			return err
+		}
+	}
+	if _, err := d.writer.Write(end); err != nil {
+		return err
+	}
+	return nil
 }
 
 func RebuildText(reader BlockReader, convWriter *ConvWriter) error {
-	var iter uint64 = 0
+	convWriter.iter = 0
 	for !reader.IsEnd() && reader.GetReadPointer() < convWriter.textLen {
 		bgn, text, end, err := reader.ReadBlock(0, convWriter.textLen, int(convWriter.opts.BlockSize))
 		if err != nil {
 			return err
 		}
-		text = convWriter.RelaxChars(text, iter)
-		if err := CheckErrorsAndWrite(convWriter.writer, bgn); err != nil {
+		convWriter.isLastCharBlock = convWriter.iter == convWriter.charBlock
+		err = convWriter.Write(bgn, text, end)
+		if err != nil {
 			return err
 		}
-		if !(iter > convWriter.charBlock && convWriter.opts.Conv.IsContain(TrimSpaces)) {
-			if err := CheckErrorsAndWrite(convWriter.writer, text); err != nil {
-				return err
-			}
-		}
-		if err := CheckErrorsAndWrite(convWriter.writer, end); err != nil {
-			return err
-		}
-
-		iter++
+		convWriter.iter++
 	}
 	return nil
 }
