@@ -8,7 +8,6 @@ import (
 )
 
 const MAX_GOROUTINES = 3
-const QUEUE_SIZE = 100
 
 // Result represents the Size function result
 type Result struct {
