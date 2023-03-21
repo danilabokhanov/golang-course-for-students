@@ -85,12 +85,8 @@ func (a *sizer) Size(ctx context.Context, d Dir) (Result, error) {
 					}
 					atomic.AddInt64(&res.Size, localRes.Size)
 					atomic.AddInt64(&res.Count, localRes.Count)
-					localDirs := []Dir{}
-					for _, d := range dirs {
-						localDirs = append(localDirs, d)
-					}
 					mt.Lock()
-					dirQueue = append(dirQueue, localDirs...)
+					dirQueue = append(dirQueue, dirs...)
 					mt.Unlock()
 					atomic.AddInt64(&tasksToDo, -1)
 					if atomic.LoadInt64(&tasksToDo) == 0 {
