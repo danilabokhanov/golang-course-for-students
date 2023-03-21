@@ -2,8 +2,7 @@ package storage
 
 import (
 	"context"
-	"fmt"
-	"sync"
+	"golang.org/x/sync/errgroup"
 	"sync/atomic"
 )
 
@@ -37,72 +36,60 @@ func NewSizer() DirSizer {
 	return &sizer{MAX_GOROUTINES}
 }
 
-func Worker(ctx context.Context, errorQueue chan error, dirQueue chan Dir, globalRes *Result,
-	tasksToDo *int64, mutex *sync.Mutex) {
-	for {
-		select {
-		case <-ctx.Done():
-			return
-		default:
-			if len(errorQueue) == 1 {
-				return
-			}
-			mutex.Lock()
-			if *tasksToDo == 0 {
-				if len(errorQueue) == 0 {
-					errorQueue <- nil
-				}
-				mutex.Unlock()
-				return
-			}
-			mutex.Unlock()
-			cur, ok := <-dirQueue
-			if !ok {
-				return
-			}
-			dirs, files, err := cur.Ls(ctx)
-			if err != nil && len(errorQueue) == 0 {
-				errorQueue <- err
-				return
-			}
-			atomic.AddInt64(tasksToDo, int64(len(dirs)))
-			res := Result{}
-			for _, f := range files {
-				fileSize, err := f.Stat(ctx)
-				if err != nil && len(errorQueue) == 0 {
-					errorQueue <- err
-					return
-				}
-				res.Size += fileSize
-				res.Count++
-			}
-			atomic.AddInt64(&globalRes.Size, res.Size)
-			atomic.AddInt64(&globalRes.Count, res.Count)
-			for _, d := range dirs {
-				dirQueue <- d
-			}
-			atomic.AddInt64(tasksToDo, -1)
-			continue
-		}
-	}
-}
-
 func (a *sizer) Size(ctx context.Context, d Dir) (Result, error) {
 	// TODO: implement this
-	errorQueue := make(chan error, 1)
+	errorQueue := new(errgroup.Group)
 	dirQueue := make(chan Dir, QUEUE_SIZE)
 	res := Result{}
 	var tasksToDo int64 = 1
-	var mutex sync.Mutex = sync.Mutex{}
 	dirQueue <- d
 
-	for i := 0; i < a.maxWorkersCount; i++ {
-		go Worker(ctx, errorQueue, dirQueue, &res, &tasksToDo, &mutex)
-	}
+	cxtEmptyQueue, cancel := context.WithCancel(ctx)
 
-	err := <-errorQueue
-	close(errorQueue)
-	close(dirQueue)
-	fmt.Print(res)
+	defer cancel()
+	for i := 0; i < a.maxWorkersCount; i++ {
+		errorQueue.Go(func() error {
+			for {
+				select {
+				case <-cxtEmptyQueue.Done():
+					return nil
+				default:
+
+					cur, ok := <-dirQueue
+					if !ok {
+						return nil
+					}
+					dirs, files, err := cur.Ls(ctx)
+					if err != nil {
+						close(dirQueue)
+						return err
+					}
+					atomic.AddInt64(&tasksToDo, int64(len(dirs)))
+					localRes := Result{}
+					for _, f := range files {
+						fileSize, err := f.Stat(ctx)
+						if err != nil {
+							close(dirQueue)
+							return err
+						}
+						localRes.Size += fileSize
+						localRes.Count++
+					}
+					atomic.AddInt64(&res.Size, localRes.Size)
+					atomic.AddInt64(&res.Count, localRes.Count)
+					for _, d := range dirs {
+						dirQueue <- d
+					}
+					atomic.AddInt64(&tasksToDo, -1)
+					if atomic.LoadInt64(&tasksToDo) == 0 {
+						close(dirQueue)
+						cancel()
+					}
+					continue
+				}
+			}
+		})
+	}
+	err := errorQueue.Wait()
 	return res, err
 }
