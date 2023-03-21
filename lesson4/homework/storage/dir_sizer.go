@@ -3,6 +3,7 @@ package storage
 import (
 	"context"
 	"golang.org/x/sync/errgroup"
+	"sync"
 	"sync/atomic"
 )
 
@@ -39,11 +40,12 @@ func NewSizer() DirSizer {
 func (a *sizer) Size(ctx context.Context, d Dir) (Result, error) {
 	// TODO: implement this
 	errorQueue := new(errgroup.Group)
-	dirQueue := make(chan Dir, QUEUE_SIZE)
+	dirQueue := []Dir{d}
+	isOpen := atomic.Value{}
+	isOpen.Store(true)
 	res := Result{}
 	var tasksToDo int64 = 1
-	dirQueue <- d
-
+	mt := sync.Mutex{}
 	cxtEmptyQueue, cancel := context.WithCancel(ctx)
 
 	defer cancel()
@@ -54,14 +56,20 @@ func (a *sizer) Size(ctx context.Context, d Dir) (Result, error) {
 				case <-cxtEmptyQueue.Done():
 					return nil
 				default:
-
-					cur, ok := <-dirQueue
-					if !ok {
+					if !isOpen.Load().(bool) {
 						return nil
 					}
+					mt.Lock()
+					if len(dirQueue) == 0 {
+						mt.Unlock()
+						continue
+					}
+					cur := dirQueue[len(dirQueue)-1]
+					dirQueue = dirQueue[:len(dirQueue)-1]
+					mt.Unlock()
 					dirs, files, err := cur.Ls(ctx)
 					if err != nil {
-						close(dirQueue)
+						isOpen.Store(false)
 						return err
 					}
 					atomic.AddInt64(&tasksToDo, int64(len(dirs)))
@@ -69,7 +77,7 @@ func (a *sizer) Size(ctx context.Context, d Dir) (Result, error) {
 					for _, f := range files {
 						fileSize, err := f.Stat(ctx)
 						if err != nil {
-							close(dirQueue)
+							isOpen.Store(false)
 							return err
 						}
 						localRes.Size += fileSize
@@ -77,12 +85,16 @@ func (a *sizer) Size(ctx context.Context, d Dir) (Result, error) {
 					}
 					atomic.AddInt64(&res.Size, localRes.Size)
 					atomic.AddInt64(&res.Count, localRes.Count)
+					localDirs := []Dir{}
 					for _, d := range dirs {
-						dirQueue <- d
+						localDirs = append(localDirs, d)
 					}
+					mt.Lock()
+					dirQueue = append(dirQueue, localDirs...)
+					mt.Unlock()
 					atomic.AddInt64(&tasksToDo, -1)
 					if atomic.LoadInt64(&tasksToDo) == 0 {
-						close(dirQueue)
+						isOpen.Store(false)
 						cancel()
 					}
 					continue
