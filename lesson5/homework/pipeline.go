@@ -24,29 +24,8 @@ type Stage func(in In) (out Out)
 //  return out
 //}
 
-var switchChan chan any
-
-func switcher(ctx context.Context) Stage {
-	return func(in In) Out {
-		go func() {
-			defer close(switchChan)
-			for v := range in {
-				select {
-				case <-ctx.Done():
-					return
-				default:
-					switchChan <- v
-				}
-			}
-		}()
-		return switchChan
-	}
-}
-
 func ExecutePipeline(ctx context.Context, in In, stages ...Stage) Out {
 	//q := append([]Stage{switcher()}, stages...)
-	switchChan = make(chan any)
-	stages = append([]Stage{switcher(ctx)}, stages...)
 	outList := make([]Out, 0, len(stages)+1)
 	outList = append(outList, in)
 	for i := 0; i < len(stages); i++ {
@@ -57,22 +36,14 @@ func ExecutePipeline(ctx context.Context, in In, stages ...Stage) Out {
 
 	go func() {
 		defer close(res)
-		var storage = []any{}
-		byContext := false
+
 		for v := range outList[len(stages)] {
 			select {
 			case <-ctx.Done():
-				byContext = true
-				break
+				return
 			default:
-				storage = append(storage, v)
+				res <- v
 			}
-		}
-		if byContext {
-			return
-		}
-		for _, v := range storage {
-			res <- v
 		}
 	}()
 	return res
