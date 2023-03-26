@@ -24,7 +24,7 @@ type Stage func(in In) (out Out)
 //  return out
 //}
 
-var switchChan = make(chan any)
+var switchChan chan any
 
 func switcher(ctx context.Context) Stage {
 	return func(in In) Out {
@@ -45,6 +45,7 @@ func switcher(ctx context.Context) Stage {
 
 func ExecutePipeline(ctx context.Context, in In, stages ...Stage) Out {
 	//q := append([]Stage{switcher()}, stages...)
+	switchChan = make(chan any)
 	stages = append([]Stage{switcher(ctx)}, stages...)
 	outList := make([]Out, 0, len(stages)+1)
 	outList = append(outList, in)
