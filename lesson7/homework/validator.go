@@ -39,12 +39,6 @@ func (errs ValidationErrors) Is(target error) bool {
 }
 
 const (
-	intID    uint = 2
-	stringID uint = 24
-	structID uint = 25
-)
-
-const (
 	lenPref string = "len:"
 	inPref  string = "in:"
 	minPref string = "min:"
@@ -61,9 +55,16 @@ type ValidateParams struct {
 
 var errs ValidationErrors
 
-func ParseValidateTags(s string, tp reflect.Type) (ValidateParams, error) {
-	var objID uint = uint(tp.Kind())
-	if objID != intID && objID != stringID {
+const (
+	intPattern         string = "int"
+	stringPattern      string = "string"
+	sliceIntPattern    string = "[]int"
+	sliceStringPattern string = "[]string"
+)
+
+func ParseValidateTags(s, objPattern string) (ValidateParams, error) {
+	if objPattern != intPattern && objPattern != stringPattern && objPattern != sliceIntPattern &&
+		objPattern != sliceStringPattern {
 		return ValidateParams{}, ErrInvalidValidatorSyntax
 	}
 	opt := ""
@@ -73,7 +74,7 @@ func ParseValidateTags(s string, tp reflect.Type) (ValidateParams, error) {
 			break
 		}
 	}
-	if len(opt) == 0 || (objID != stringID && opt == lenPref) {
+	if len(opt) == 0 || (objPattern != stringPattern && objPattern != sliceStringPattern && opt == lenPref) {
 		return ValidateParams{}, ErrInvalidValidatorSyntax
 	}
 	res := ValidateParams{tp: opt, min: -INF, max: INF}
@@ -82,7 +83,7 @@ func ParseValidateTags(s string, tp reflect.Type) (ValidateParams, error) {
 		if len(values[0]) == 0 {
 			return ValidateParams{}, ErrInvalidValidatorSyntax
 		}
-		if objID == intID {
+		if objPattern == intPattern || objPattern == sliceIntPattern {
 			for _, t := range values {
 				if _, err := strconv.Atoi(t); err != nil {
 					return ValidateParams{}, ErrInvalidValidatorSyntax
@@ -163,26 +164,43 @@ func Validate(v any) error {
 	origin := reflect.TypeOf(v).Kind()
 
 	errs = ValidationErrors{}
-	if uint(origin) != structID {
+	if origin != reflect.Struct {
 		errs = append(errs, ValidationError{ErrNotStruct})
 	} else {
 		t := val.Type()
 		for i := 0; i < val.NumField(); i++ {
-			field := t.Field(i)
-			s, ok := field.Tag.Lookup("validate")
+			structuredField := t.Field(i)
+			s, ok := structuredField.Tag.Lookup("validate")
 			if !ok {
 				continue
 			}
-			if !field.IsExported() {
+			if !structuredField.IsExported() {
 				errs = append(errs, ValidationError{ErrValidateForUnexportedFields})
 			} else {
-				cnfg, err := ParseValidateTags(s, field.Type)
+				objPattern := structuredField.Type.String()
+				cnfg, err := ParseValidateTags(s, objPattern)
 				if err != nil {
 					errs = append(errs, ValidationError{err})
-				} else if uint(field.Type.Kind()) == intID {
-					ParseInt(&cnfg, int(val.Field(i).Int()), field.Name)
+				} else if objPattern == intPattern {
+					ParseInt(&cnfg, int(val.Field(i).Int()), structuredField.Name)
+				} else if objPattern == stringPattern {
+					ParseString(&cnfg, val.Field(i).String(), structuredField.Name)
 				} else {
-					ParseString(&cnfg, val.Field(i).String(), field.Name)
+					valField := val.Field(i)
+					var innerIntegers []int
+					var innerStrings []string
+					if objPattern == sliceIntPattern {
+						innerIntegers, _ = valField.Interface().([]int)
+					} else {
+						innerStrings, _ = valField.Interface().([]string)
+					}
+
+					for _, item := range innerIntegers {
+						ParseInt(&cnfg, item, structuredField.Name)
+					}
+					for _, item := range innerStrings {
+						ParseString(&cnfg, item, structuredField.Name)
+					}
 				}
 			}
 		}
