@@ -1,6 +1,7 @@
 package homework
 
 import (
+	"fmt"
 	"github.com/pkg/errors"
 )
 
@@ -20,6 +21,6 @@ func (v ValidationErrors) Error() string {
 }
 
 func Validate(v any) error {
-	// TODO: implement this
+	fmt.Println("test")
 	return nil
 }
