@@ -300,7 +300,7 @@ func TestValidate(t *testing.T) {
 			},
 		},
 		{
-			name: "wrong len (integers)",
+			name: "wrong len",
 			args: args{
 				v: struct {
 					SliceInt []string `validate:"len:3"`
