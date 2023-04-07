@@ -217,6 +217,103 @@ func TestValidate(t *testing.T) {
 				return true
 			},
 		},
+		{
+			name: "valid max (integers)",
+			args: args{
+				v: struct {
+					SliceInt []int `validate:"max:5"`
+				}{
+					SliceInt: []int{1, 2, 3, 4, 5},
+				},
+			},
+			wantErr: false,
+		},
+		{
+			name: "wrong min (integers)",
+			args: args{
+				v: struct {
+					SliceInt []int `validate:"min:2"`
+				}{
+					SliceInt: []int{1, 2, 3, 4, 5},
+				},
+			},
+			wantErr: true,
+			checkErr: func(err error) bool {
+				assert.Len(t, err.(ValidationErrors), 1)
+				return true
+			},
+		},
+		{
+			name: "wrong in (integers)",
+			args: args{
+				v: struct {
+					SliceInt []int `validate:"in:3,5"`
+				}{
+					SliceInt: []int{1, 2, 3, 4, 5},
+				},
+			},
+			wantErr: true,
+			checkErr: func(err error) bool {
+				assert.Len(t, err.(ValidationErrors), 3)
+				return true
+			},
+		},
+		{
+			name: "valid max (strings)",
+			args: args{
+				v: struct {
+					SliceInt []string `validate:"max:3"`
+				}{
+					SliceInt: []string{"aba", "ca", "ba"},
+				},
+			},
+			wantErr: false,
+		},
+		{
+			name: "wrong min (strings)",
+			args: args{
+				v: struct {
+					SliceInt []string `validate:"min:2"`
+				}{
+					SliceInt: []string{"a", "", "aba", "ca", "ba"},
+				},
+			},
+			wantErr: true,
+			checkErr: func(err error) bool {
+				assert.Len(t, err.(ValidationErrors), 2)
+				return true
+			},
+		},
+		{
+			name: "wrong in (strings)",
+			args: args{
+				v: struct {
+					SliceInt []string `validate:"in:abacaba,cat"`
+				}{
+					SliceInt: []string{"aba", "ca", "ba", "cat", "dog"},
+				},
+			},
+			wantErr: true,
+			checkErr: func(err error) bool {
+				assert.Len(t, err.(ValidationErrors), 1)
+				return true
+			},
+		},
+		{
+			name: "wrong len",
+			args: args{
+				v: struct {
+					SliceInt []string `validate:"len:3"`
+				}{
+					SliceInt: []string{"aba", "ca", "ba", "cat", "dog"},
+				},
+			},
+			wantErr: true,
+			checkErr: func(err error) bool {
+				assert.Len(t, err.(ValidationErrors), 2)
+				return true
+			},
+		},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
