@@ -24,7 +24,6 @@ type Repository interface {
 }
 
 type SimpleApp struct {
-	app        App
 	repository Repository
 }
 
