@@ -5,5 +5,5 @@ import (
 )
 
 func New() app.Repository {
-	return nil // TODO: реализовать
+	return &app.SliceRepo{} // TODO: реализовать
 }
