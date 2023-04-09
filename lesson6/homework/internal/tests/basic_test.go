@@ -34,7 +34,6 @@ func getResponse(server httpfiber.Server, req *http.Request, out interface{}) er
 	if err != nil {
 		return fmt.Errorf("unexpected error: %w", err)
 	}
-
 	if resp.StatusCode != http.StatusOK {
 		if resp.StatusCode == http.StatusBadRequest {
 			return ErrBadRequest
@@ -87,12 +86,10 @@ func changeAdStatus(server httpfiber.Server, userID int64, adID int64, published
 		"user_id":   userID,
 		"published": published,
 	}
-
 	data, err := json.Marshal(body)
 	if err != nil {
 		return adResponse{}, fmt.Errorf("unable to marshal: %w", err)
 	}
-
 	req := httptest.NewRequest(http.MethodPut, fmt.Sprintf("/api/v1/ads/%d/status", adID), bytes.NewReader(data))
 	req.Header.Add("Content-Type", "application/json")
 
@@ -101,7 +98,6 @@ func changeAdStatus(server httpfiber.Server, userID int64, adID int64, published
 	if err != nil {
 		return adResponse{}, err
 	}
-
 	return response, nil
 }
 

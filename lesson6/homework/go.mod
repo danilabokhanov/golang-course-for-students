@@ -2,10 +2,14 @@ module homework6
 
 go 1.19
 
-require github.com/gofiber/fiber/v2 v2.43.0
+require (
+	github.com/gofiber/fiber/v2 v2.43.0
+	github.com/pkg/errors v0.9.1
+)
 
 require (
 	github.com/andybalholm/brotli v1.0.5 // indirect
+	github.com/danilabokhanov/strintvalidator v0.1.1
 	github.com/google/uuid v1.3.0 // indirect
 	github.com/klauspost/compress v1.16.3 // indirect
 	github.com/mattn/go-colorable v0.1.13 // indirect
