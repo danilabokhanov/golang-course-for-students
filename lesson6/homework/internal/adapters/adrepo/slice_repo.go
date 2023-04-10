@@ -1,8 +1,7 @@
-package app
+package adrepo
 
 import (
 	"context"
-	"github.com/pkg/errors"
 	"homework6/internal/ads"
 )
 
@@ -11,14 +10,11 @@ type SliceRepo struct {
 	curID int64
 }
 
-var ErrWrongKey = errors.New("wrong adID")
-var ErrNoAccess = errors.New("permission denied")
-
-func (d *SliceRepo) Find(ctx context.Context, adID int64) (ads.Ad, error) {
+func (d *SliceRepo) Find(ctx context.Context, adID int64) (ads.Ad, bool) {
 	if adID >= int64(len(d.mp)) {
-		return ads.Ad{}, ErrWrongKey
+		return ads.Ad{}, false
 	}
-	return d.mp[adID], nil
+	return d.mp[adID], true
 }
 
 func (d *SliceRepo) Add(ctx context.Context, title string, text string, userID int64) (int64, error) {
@@ -28,34 +24,16 @@ func (d *SliceRepo) Add(ctx context.Context, title string, text string, userID i
 }
 
 func (d *SliceRepo) SetTitle(ctx context.Context, adID, UserID int64, title string) error {
-	if adID >= int64(len(d.mp)) {
-		return ErrWrongKey
-	}
-	if UserID != d.mp[adID].AuthorID {
-		return ErrNoAccess
-	}
 	d.mp[adID].Title = title
 	return nil
 }
 
 func (d *SliceRepo) SetText(ctx context.Context, adID, UserID int64, text string) error {
-	if adID >= int64(len(d.mp)) {
-		return ErrWrongKey
-	}
-	if UserID != d.mp[adID].AuthorID {
-		return ErrNoAccess
-	}
 	d.mp[adID].Text = text
 	return nil
 }
 
 func (d *SliceRepo) SetStatus(ctx context.Context, adID, UserID int64, status bool) error {
-	if adID >= int64(len(d.mp)) {
-		return ErrWrongKey
-	}
-	if UserID != d.mp[adID].AuthorID {
-		return ErrNoAccess
-	}
 	d.mp[adID].Published = status
 	return nil
 }
