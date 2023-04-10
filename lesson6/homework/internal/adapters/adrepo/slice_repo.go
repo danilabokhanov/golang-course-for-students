@@ -23,17 +23,17 @@ func (d *SliceRepo) Add(ctx context.Context, title string, text string, userID i
 	return d.curID - 1, nil
 }
 
-func (d *SliceRepo) SetTitle(ctx context.Context, adID, UserID int64, title string) error {
+func (d *SliceRepo) SetTitle(ctx context.Context, adID int64, title string) error {
 	d.mp[adID].Title = title
 	return nil
 }
 
-func (d *SliceRepo) SetText(ctx context.Context, adID, UserID int64, text string) error {
+func (d *SliceRepo) SetText(ctx context.Context, adID int64, text string) error {
 	d.mp[adID].Text = text
 	return nil
 }
 
-func (d *SliceRepo) SetStatus(ctx context.Context, adID, UserID int64, status bool) error {
+func (d *SliceRepo) SetStatus(ctx context.Context, adID int64, status bool) error {
 	d.mp[adID].Published = status
 	return nil
 }

@@ -18,9 +18,9 @@ type Repository interface {
 	// TODO: реализовать
 	Find(ctx context.Context, adID int64) (ads.Ad, bool)
 	Add(ctx context.Context, title string, text string, userID int64) (int64, error)
-	SetTitle(ctx context.Context, adID, UserID int64, title string) error
-	SetText(ctx context.Context, adID, UserID int64, text string) error
-	SetStatus(ctx context.Context, adID, UserID int64, status bool) error
+	SetTitle(ctx context.Context, adID int64, title string) error
+	SetText(ctx context.Context, adID int64, text string) error
+	SetStatus(ctx context.Context, adID int64, status bool) error
 }
 
 type SimpleApp struct {
@@ -60,7 +60,7 @@ func (d SimpleApp) ChangeAdStatus(ctx context.Context, adID int64, UserID int64,
 	if ad.AuthorID != UserID {
 		return ads.Ad{}, ErrNoAccess
 	}
-	err := d.repository.SetStatus(ctx, adID, UserID, published)
+	err := d.repository.SetStatus(ctx, adID, published)
 	if err != nil {
 		return ads.Ad{}, err
 	}
@@ -75,11 +75,11 @@ func (d SimpleApp) UpdateAd(ctx context.Context, adID int64, UserID int64, title
 	if ad.AuthorID != UserID {
 		return ads.Ad{}, ErrNoAccess
 	}
-	err := d.repository.SetText(ctx, adID, UserID, text)
+	err := d.repository.SetText(ctx, adID, text)
 	if err != nil {
 		return ads.Ad{}, err
 	}
-	err = d.repository.SetTitle(ctx, adID, UserID, title)
+	err = d.repository.SetTitle(ctx, adID, title)
 	if err != nil {
 		return ads.Ad{}, err
 	}
