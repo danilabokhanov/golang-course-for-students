@@ -36,7 +36,7 @@ var ErrWrongFormat = fmt.Errorf("wrong format")
 var ErrWrongKey = fmt.Errorf("wrong adID")
 var ErrNoAccess = fmt.Errorf("permission denied")
 
-func (d SimpleApp) FindAndValidate(ctx context.Context, adID int64) (ads.Ad, error) {
+func (d SimpleApp) Validate(ctx context.Context, adID int64) (ads.Ad, error) {
 	ad, _ := d.repository.Find(ctx, adID)
 	if e := strintvalidator.Validate(ad); e != nil {
 		return ads.Ad{}, ErrWrongFormat
@@ -45,11 +45,15 @@ func (d SimpleApp) FindAndValidate(ctx context.Context, adID int64) (ads.Ad, err
 }
 
 func (d SimpleApp) CreateAd(ctx context.Context, title string, text string, userID int64) (ads.Ad, error) {
+	if e := strintvalidator.Validate(ads.Ad{Title: title, Text: text}); e != nil {
+		return ads.Ad{}, ErrWrongFormat
+	}
 	adID, err := d.repository.Add(ctx, title, text, userID)
 	if err != nil {
 		return ads.Ad{}, err
 	}
-	return d.FindAndValidate(ctx, adID)
+	ad, _ := d.repository.Find(ctx, adID)
+	return ad, nil
 }
 
 func (d SimpleApp) ChangeAdStatus(ctx context.Context, adID int64, UserID int64, published bool) (ads.Ad, error) {
@@ -64,10 +68,14 @@ func (d SimpleApp) ChangeAdStatus(ctx context.Context, adID int64, UserID int64,
 	if err != nil {
 		return ads.Ad{}, err
 	}
-	return d.FindAndValidate(ctx, adID)
+	ad.Published = published
+	return ad, nil
 }
 
 func (d SimpleApp) UpdateAd(ctx context.Context, adID int64, UserID int64, title string, text string) (ads.Ad, error) {
+	if e := strintvalidator.Validate(ads.Ad{Title: title, Text: text}); e != nil {
+		return ads.Ad{}, ErrWrongFormat
+	}
 	ad, isFound := d.repository.Find(ctx, adID)
 	if !isFound {
 		return ads.Ad{}, ErrWrongKey
@@ -83,5 +91,7 @@ func (d SimpleApp) UpdateAd(ctx context.Context, adID int64, UserID int64, title
 	if err != nil {
 		return ads.Ad{}, err
 	}
-	return d.FindAndValidate(ctx, adID)
+	ad.Title = title
+	ad.Text = text
+	return ad, nil
 }
