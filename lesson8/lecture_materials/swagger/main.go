@@ -43,8 +43,8 @@ func handleUsers(w http.ResponseWriter, r *http.Request) {
 //	@license.name	Apache 2.0
 //	@license.url	http://www.apache.org/licenses/LICENSE-2.0.html
 
-// @host		petstore.swagger.io
-// @BasePath	/api/v1
+//	@host		petstore.swagger.io
+//	@BasePath	/api/v1
 func main() {
 	http.HandleFunc("/docs/", swagger.WrapHandler)
 	http.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
