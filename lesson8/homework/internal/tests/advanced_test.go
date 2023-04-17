@@ -9,12 +9,12 @@ import (
 func TestGetAdByID(t *testing.T) {
 	client := getTestClient()
 
-	client.createUser(3, "nickname", "example@mail.com")
-	client.createUser(5, "cat", "cat@mail.com")
-	client.createUser(7, "aba", "caba@mail.com")
-	client.createAd(3, "aba", "caba")
-	client.createAd(5, "foo", "bar")
-	client.createAd(7, "alpha", "beta")
+	_, _ = client.createUser(3, "nickname", "example@mail.com")
+	_, _ = client.createUser(5, "cat", "cat@mail.com")
+	_, _ = client.createUser(7, "aba", "caba@mail.com")
+	_, _ = client.createAd(3, "aba", "caba")
+	_, _ = client.createAd(5, "foo", "bar")
+	_, _ = client.createAd(7, "alpha", "beta")
 	response, err := client.getAdByID(1)
 	assert.NoError(t, err)
 	assert.Equal(t, response.Data.ID, int64(1))
@@ -48,9 +48,9 @@ func TestCreateUser(t *testing.T) {
 func TestFilterByAuthor(t *testing.T) {
 	client := getTestClient()
 
-	client.createUser(3, "nickname", "example@mail.com")
-	client.createUser(5, "cat", "cat@mail.com")
-	client.createUser(7, "aba", "caba@mail.com")
+	_, _ = client.createUser(3, "nickname", "example@mail.com")
+	_, _ = client.createUser(5, "cat", "cat@mail.com")
+	_, _ = client.createUser(7, "aba", "caba@mail.com")
 
 	a, _ := client.createAd(3, "aba", "caba")
 	b, _ := client.createAd(3, "bab", "abac")
@@ -79,9 +79,9 @@ func TestFilterByAuthor(t *testing.T) {
 func TestFilterByTime(t *testing.T) {
 	client := getTestClient()
 
-	client.createUser(3, "nickname", "example@mail.com")
-	client.createUser(5, "cat", "cat@mail.com")
-	client.createUser(7, "aba", "caba@mail.com")
+	_, _ = client.createUser(3, "nickname", "example@mail.com")
+	_, _ = client.createUser(5, "cat", "cat@mail.com")
+	_, _ = client.createUser(7, "aba", "caba@mail.com")
 
 	a, _ := client.createAd(3, "aba", "caba")
 	time.Sleep(2 * time.Second)
@@ -115,9 +115,9 @@ func TestFilterByTime(t *testing.T) {
 func TestFilterByPublishedOnly(t *testing.T) {
 	client := getTestClient()
 
-	client.createUser(3, "nickname", "example@mail.com")
-	client.createUser(5, "cat", "cat@mail.com")
-	client.createUser(7, "aba", "caba@mail.com")
+	_, _ = client.createUser(3, "nickname", "example@mail.com")
+	_, _ = client.createUser(5, "cat", "cat@mail.com")
+	_, _ = client.createUser(7, "aba", "caba@mail.com")
 
 	a, _ := client.createAd(3, "aba", "caba")
 	b, _ := client.createAd(3, "bab", "abac")
@@ -146,9 +146,9 @@ func TestFilterByPublishedOnly(t *testing.T) {
 func TestChangeUserInfo(t *testing.T) {
 	client := getTestClient()
 
-	client.createUser(3, "nickname", "example@mail.com")
-	client.createUser(5, "cat", "cat@mail.com")
-	client.createUser(7, "aba", "caba@mail.com")
+	_, _ = client.createUser(3, "nickname", "example@mail.com")
+	_, _ = client.createUser(5, "cat", "cat@mail.com")
+	_, _ = client.createUser(7, "aba", "caba@mail.com")
 
 	response, err := client.changeUserInfo(3, "123", "qwerty@mail.ru")
 	assert.NoError(t, err)
@@ -162,14 +162,14 @@ func TestChangeUserInfo(t *testing.T) {
 func TestGetAdsByTitle(t *testing.T) {
 	client := getTestClient()
 
-	client.createUser(3, "nickname", "example@mail.com")
-	client.createUser(5, "cat", "cat@mail.com")
-	client.createUser(7, "aba", "caba@mail.com")
+	_, _ = client.createUser(3, "nickname", "example@mail.com")
+	_, _ = client.createUser(5, "cat", "cat@mail.com")
+	_, _ = client.createUser(7, "aba", "caba@mail.com")
 
 	a, _ := client.createAd(3, "aba", "caba")
 	b, _ := client.createAd(5, "aba", "abac")
 	c, _ := client.createAd(7, "foo", "bar")
-	client.createAd(3, "alpha", "beta")
+	_, _ = client.createAd(3, "alpha", "beta")
 	c, _ = client.updateAd(7, c.Data.ID, "aba", "test")
 
 	ads, err := client.getAdsByTitle("aba")

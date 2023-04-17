@@ -10,7 +10,7 @@ import (
 func TestCreateAd_EmptyTitle(t *testing.T) {
 	client := getTestClient()
 
-	client.createUser(123, "nickname", "example@mail.com")
+	_, _ = client.createUser(123, "nickname", "example@mail.com")
 
 	_, err := client.createAd(123, "", "world")
 	assert.ErrorIs(t, err, ErrBadRequest)
@@ -21,7 +21,7 @@ func TestCreateAd_TooLongTitle(t *testing.T) {
 
 	title := strings.Repeat("a", 101)
 
-	client.createUser(123, "nickname", "example@mail.com")
+	_, _ = client.createUser(123, "nickname", "example@mail.com")
 
 	_, err := client.createAd(123, title, "world")
 	assert.ErrorIs(t, err, ErrBadRequest)
@@ -30,7 +30,7 @@ func TestCreateAd_TooLongTitle(t *testing.T) {
 func TestCreateAd_EmptyText(t *testing.T) {
 	client := getTestClient()
 
-	client.createUser(123, "nickname", "example@mail.com")
+	_, _ = client.createUser(123, "nickname", "example@mail.com")
 
 	_, err := client.createAd(123, "title", "")
 	assert.ErrorIs(t, err, ErrBadRequest)
@@ -41,7 +41,7 @@ func TestCreateAd_TooLongText(t *testing.T) {
 
 	text := strings.Repeat("a", 501)
 
-	client.createUser(123, "nickname", "example@mail.com")
+	_, _ = client.createUser(123, "nickname", "example@mail.com")
 
 	_, err := client.createAd(123, "title", text)
 	assert.ErrorIs(t, err, ErrBadRequest)
@@ -50,7 +50,7 @@ func TestCreateAd_TooLongText(t *testing.T) {
 func TestUpdateAd_EmptyTitle(t *testing.T) {
 	client := getTestClient()
 
-	client.createUser(123, "nickname", "example@mail.com")
+	_, _ = client.createUser(123, "nickname", "example@mail.com")
 
 	resp, err := client.createAd(123, "hello", "world")
 	assert.NoError(t, err)
@@ -62,7 +62,7 @@ func TestUpdateAd_EmptyTitle(t *testing.T) {
 func TestUpdateAd_TooLongTitle(t *testing.T) {
 	client := getTestClient()
 
-	client.createUser(123, "nickname", "example@mail.com")
+	_, _ = client.createUser(123, "nickname", "example@mail.com")
 
 	resp, err := client.createAd(123, "hello", "world")
 	assert.NoError(t, err)
@@ -76,7 +76,7 @@ func TestUpdateAd_TooLongTitle(t *testing.T) {
 func TestUpdateAd_EmptyText(t *testing.T) {
 	client := getTestClient()
 
-	client.createUser(123, "nickname", "example@mail.com")
+	_, _ = client.createUser(123, "nickname", "example@mail.com")
 
 	resp, err := client.createAd(123, "hello", "world")
 	assert.NoError(t, err)
@@ -90,8 +90,8 @@ func TestUpdateAd_TooLongText(t *testing.T) {
 
 	text := strings.Repeat("a", 501)
 
-	client.createUser(123, "nickname", "example@mail.com")
-	
+	_, _ = client.createUser(123, "nickname", "example@mail.com")
+
 	resp, err := client.createAd(123, "hello", "world")
 	assert.NoError(t, err)
 

@@ -210,7 +210,7 @@ func (d SimpleApp) FindAd(ctx context.Context, adID int64) (ads.Ad, error) {
 }
 
 func (d SimpleApp) CreateUserByID(ctx context.Context, nickname, email string, userID int64) (user.User, error) {
-	u, isFound := d.users.Find(ctx, userID)
+	_, isFound := d.users.Find(ctx, userID)
 	if isFound {
 		return user.User{}, ErrWrongFormat
 	}
