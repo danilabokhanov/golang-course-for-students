@@ -30,7 +30,7 @@ func TestCreateAd(t *testing.T) {
 func TestChangeAdStatus(t *testing.T) {
 	client := getTestClient()
 
-	client.createUser(123, "nickname", "example@mail.com")
+	_, _ = client.createUser(123, "nickname", "example@mail.com")
 
 	response, err := client.createAd(123, "hello", "world")
 	assert.NoError(t, err)
@@ -51,7 +51,7 @@ func TestChangeAdStatus(t *testing.T) {
 func TestUpdateAd(t *testing.T) {
 	client := getTestClient()
 
-	client.createUser(123, "nickname", "example@mail.com")
+	_, _ = client.createUser(123, "nickname", "example@mail.com")
 
 	response, err := client.createAd(123, "hello", "world")
 	assert.NoError(t, err)
@@ -65,7 +65,7 @@ func TestUpdateAd(t *testing.T) {
 func TestListAds(t *testing.T) {
 	client := getTestClient()
 
-	client.createUser(123, "nickname", "example@mail.com")
+	_, _ = client.createUser(123, "nickname", "example@mail.com")
 
 	response, err := client.createAd(123, "hello", "world")
 	assert.NoError(t, err)
