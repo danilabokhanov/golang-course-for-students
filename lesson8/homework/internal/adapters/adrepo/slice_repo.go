@@ -18,8 +18,8 @@ type SliceRepo struct {
 }
 
 func (d *SliceRepo) Find(ctx context.Context, adID int64) (ads.Ad, bool) {
-	d.mx.Lock()
-	defer d.mx.Unlock()
+	d.mx.RLock()
+	defer d.mx.RUnlock()
 	if _, ok := d.mp[adID]; !ok {
 		return ads.Ad{}, false
 	}
@@ -72,8 +72,8 @@ func (d *SliceRepo) SetStatus(ctx context.Context, adID int64, status bool) erro
 }
 
 func (d *SliceRepo) GetAllByTemplate(ctx context.Context, adp adpattern.AdPattern) ([]ads.Ad, error) {
-	d.mx.Lock()
-	defer d.mx.Unlock()
+	d.mx.RLock()
+	defer d.mx.RUnlock()
 	res := []ads.Ad{}
 	for _, ad := range d.mp {
 		if app.CheckAd(ad, adp) {
@@ -87,8 +87,8 @@ func (d *SliceRepo) GetAllByTemplate(ctx context.Context, adp adpattern.AdPatter
 }
 
 func (d *SliceRepo) GetByTitle(ctx context.Context, title string) ([]ads.Ad, error) {
-	d.mx.Lock()
-	defer d.mx.Unlock()
+	d.mx.RLock()
+	defer d.mx.RUnlock()
 	res := []ads.Ad{}
 	for _, ad := range d.mp {
 		if strings.HasPrefix(ad.Title, title) {

@@ -58,8 +58,8 @@ func (d *BasicFilter) SetRTime(ctx context.Context, r time.Time) (app.Filter, er
 }
 
 func (d *BasicFilter) GetPattern(ctx context.Context) (adpattern.AdPattern, error) {
-	d.mx.Lock()
-	defer d.mx.Unlock()
+	d.mx.RLock()
+	defer d.mx.RUnlock()
 
 	return d.pattern, nil
 }

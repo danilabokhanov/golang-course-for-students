@@ -13,8 +13,8 @@ type BasicCustomer struct {
 }
 
 func (d *BasicCustomer) Find(ctx context.Context, userID int64) (user.User, bool) {
-	d.mx.Lock()
-	defer d.mx.Unlock()
+	d.mx.RLock()
+	defer d.mx.RUnlock()
 	if _, ok := d.mp[userID]; !ok {
 		return user.User{}, false
 	}
