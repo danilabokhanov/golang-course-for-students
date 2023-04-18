@@ -95,5 +95,8 @@ func (d *SliceRepo) GetByTitle(ctx context.Context, title string) ([]ads.Ad, err
 			res = append(res, ad)
 		}
 	}
+	sort.SliceStable(res, func(i, j int) bool {
+		return res[i].CreationDate.Before(res[j].CreationDate)
+	})
 	return res, nil
 }
