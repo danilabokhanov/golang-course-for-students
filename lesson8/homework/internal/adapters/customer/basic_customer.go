@@ -13,8 +13,8 @@ type BasicCustomer struct {
 }
 
 func (d *BasicCustomer) Find(ctx context.Context, userID int64) (user.User, bool) {
-	d.mx.RLock()
-	defer d.mx.RUnlock()
+	d.mx.Lock()
+	defer d.mx.Unlock()
 	if _, ok := d.mp[userID]; !ok {
 		return user.User{}, false
 	}
@@ -22,8 +22,8 @@ func (d *BasicCustomer) Find(ctx context.Context, userID int64) (user.User, bool
 }
 
 func (d *BasicCustomer) Add(ctx context.Context, nickname, email string) (int64, error) {
-	d.mx.RLock()
-	defer d.mx.RUnlock()
+	d.mx.Lock()
+	defer d.mx.Unlock()
 
 	for {
 		d.curID++
@@ -36,8 +36,8 @@ func (d *BasicCustomer) Add(ctx context.Context, nickname, email string) (int64,
 }
 
 func (d *BasicCustomer) ChangeInfo(ctx context.Context, userID int64, nickname, email string) error {
-	d.mx.RLock()
-	defer d.mx.RUnlock()
+	d.mx.Lock()
+	defer d.mx.Unlock()
 	cur := d.mp[userID]
 	cur.Nickname = nickname
 	cur.Email = email
@@ -46,8 +46,8 @@ func (d *BasicCustomer) ChangeInfo(ctx context.Context, userID int64, nickname, 
 }
 
 func (d *BasicCustomer) CreateByID(ctx context.Context, nickname string, email string, userID int64) (user.User, error) {
-	d.mx.RLock()
-	defer d.mx.RUnlock()
+	d.mx.Lock()
+	defer d.mx.Unlock()
 	d.mp[userID] = user.User{ID: userID, Nickname: nickname, Email: email}
 	return d.mp[userID], nil
 }

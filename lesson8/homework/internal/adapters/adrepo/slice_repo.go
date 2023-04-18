@@ -6,6 +6,7 @@ import (
 	"homework8/internal/ads"
 	"homework8/internal/app"
 	"sort"
+	"strings"
 	"sync"
 	"time"
 )
@@ -17,8 +18,8 @@ type SliceRepo struct {
 }
 
 func (d *SliceRepo) Find(ctx context.Context, adID int64) (ads.Ad, bool) {
-	d.mx.RLock()
-	defer d.mx.RUnlock()
+	d.mx.Lock()
+	defer d.mx.Unlock()
 	if _, ok := d.mp[adID]; !ok {
 		return ads.Ad{}, false
 	}
@@ -26,8 +27,8 @@ func (d *SliceRepo) Find(ctx context.Context, adID int64) (ads.Ad, bool) {
 }
 
 func (d *SliceRepo) Add(ctx context.Context, title string, text string, userID int64) (int64, error) {
-	d.mx.RLock()
-	defer d.mx.RUnlock()
+	d.mx.Lock()
+	defer d.mx.Unlock()
 
 	for {
 		if _, ok := d.mp[d.curID]; !ok {
@@ -41,8 +42,8 @@ func (d *SliceRepo) Add(ctx context.Context, title string, text string, userID i
 }
 
 func (d *SliceRepo) SetTitle(ctx context.Context, adID int64, title string) error {
-	d.mx.RLock()
-	defer d.mx.RUnlock()
+	d.mx.Lock()
+	defer d.mx.Unlock()
 	cur := d.mp[adID]
 	cur.Title = title
 	cur.UpdateDate = time.Now().UTC()
@@ -51,8 +52,8 @@ func (d *SliceRepo) SetTitle(ctx context.Context, adID int64, title string) erro
 }
 
 func (d *SliceRepo) SetText(ctx context.Context, adID int64, text string) error {
-	d.mx.RLock()
-	defer d.mx.RUnlock()
+	d.mx.Lock()
+	defer d.mx.Unlock()
 	cur := d.mp[adID]
 	cur.Text = text
 	cur.UpdateDate = time.Now().UTC()
@@ -61,8 +62,8 @@ func (d *SliceRepo) SetText(ctx context.Context, adID int64, text string) error 
 }
 
 func (d *SliceRepo) SetStatus(ctx context.Context, adID int64, status bool) error {
-	d.mx.RLock()
-	defer d.mx.RUnlock()
+	d.mx.Lock()
+	defer d.mx.Unlock()
 	cur := d.mp[adID]
 	cur.Published = status
 	cur.UpdateDate = time.Now().UTC()
@@ -71,8 +72,8 @@ func (d *SliceRepo) SetStatus(ctx context.Context, adID int64, status bool) erro
 }
 
 func (d *SliceRepo) GetAllByTemplate(ctx context.Context, adp adpattern.AdPattern) ([]ads.Ad, error) {
-	d.mx.RLock()
-	defer d.mx.RUnlock()
+	d.mx.Lock()
+	defer d.mx.Unlock()
 	res := []ads.Ad{}
 	for _, ad := range d.mp {
 		if app.CheckAd(ad, adp) {
@@ -86,11 +87,11 @@ func (d *SliceRepo) GetAllByTemplate(ctx context.Context, adp adpattern.AdPatter
 }
 
 func (d *SliceRepo) GetByTitle(ctx context.Context, title string) ([]ads.Ad, error) {
-	d.mx.RLock()
-	defer d.mx.RUnlock()
+	d.mx.Lock()
+	defer d.mx.Unlock()
 	res := []ads.Ad{}
 	for _, ad := range d.mp {
-		if ad.Title == title {
+		if strings.HasPrefix(ad.Title, title) {
 			res = append(res, ad)
 		}
 	}
