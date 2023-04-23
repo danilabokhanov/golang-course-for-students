@@ -4,6 +4,11 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"homework9/internal/adapters/adfilter"
+	"homework9/internal/adapters/adrepo"
+	"homework9/internal/adapters/customer"
+	"homework9/internal/app"
+	"homework9/internal/ports/httpgin"
 	"log"
 	"net"
 	"net/http"
@@ -12,17 +17,16 @@ import (
 	"syscall"
 	"time"
 
-	"github.com/gin-gonic/gin"
 	"golang.org/x/sync/errgroup"
 	"google.golang.org/grpc"
-	"google.golang.org/protobuf/types/known/emptypb"
-	"lecture9/grpc/foo"
+	grpcPorts "homework9/internal/ports/grpc"
 )
 
 const (
-	grpcPort = ":50054"
-	httpPort = ":9000"
+	grpcPort = ":8080"
+	httpPort = ":18080"
 )
+const httpShutdownTime = 30 * time.Second
 
 func main() {
 	lis, err := net.Listen("tcp", grpcPort)
@@ -30,18 +34,11 @@ func main() {
 		log.Fatalf("failed to listen: %v", err)
 	}
 
-	grpcService := &GRPCService{}
-	grpcServer := grpc.NewServer()
-	foo.RegisterBarServiceServer(grpcServer, grpcService)
+	grpcServer := grpc.NewServer(grpc.ChainUnaryInterceptor(grpcPorts.UnaryInterceptor, grpcPorts.RecoveryInterceptor))
+	grpcService := grpcPorts.NewService(app.NewApp(adrepo.New(), customer.New(), adfilter.New()))
+	grpcPorts.RegisterAdServiceServer(grpcServer, grpcService)
 
-	httpService := &HTTPService{}
-	router := gin.Default()
-	router.GET("/foo", gin.WrapF(httpService.foo))
-
-	httpServer := http.Server{
-		Addr:    httpPort,
-		Handler: router,
-	}
+	httpServer := httpgin.NewHTTPServer(httpPort, app.NewApp(adrepo.New(), customer.New(), adfilter.New()))
 
 	eg, ctx := errgroup.WithContext(context.Background())
 
@@ -59,7 +56,6 @@ func main() {
 		}
 	})
 
-	// run grpc server
 	eg.Go(func() error {
 		log.Printf("starting grpc server, listening on %s\n", grpcPort)
 		defer log.Printf("close grpc server listening on %s\n", grpcPort)
@@ -94,7 +90,7 @@ func main() {
 		errCh := make(chan error)
 
 		defer func() {
-			shCtx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
+			shCtx, cancel := context.WithTimeout(context.Background(), httpShutdownTime)
 			defer cancel()
 
 			if err := httpServer.Shutdown(shCtx); err != nil {
@@ -124,35 +120,3 @@ func main() {
 
 	log.Println("servers were successfully shutdown")
 }
-
-type GRPCService struct{}
-
-func (s *GRPCService) Bar(ctx context.Context, _ *emptypb.Empty) (*foo.BarMessage, error) {
-	log.Println("GRPCService: get request")
-	time.Sleep(10 * time.Second)
-	log.Println("GRPCService: write response")
-	return &foo.BarMessage{
-		Data: &foo.BarMessage_Id{Id: "bar"},
-	}, nil
-}
-
-type HTTPService struct{}
-
-func (s *HTTPService) foo(w http.ResponseWriter, r *http.Request) {
-	log.Println("HTTPService: get request")
-	time.Sleep(10 * time.Second)
-	log.Println("HTTPService: write response")
-	w.WriteHeader(http.StatusOK)
-
-	if _, err := w.Write([]byte("foo")); err != nil {
-		log.Println(err)
-	}
-}
-
-//func (s *GRPCService) ClientStream(_ foo.FooBarService_ClientStreamServer) error { return nil }
-//
-//func (s *GRPCService) ServerStream(_ *foo.ObjectID, _ foo.FooBarService_ServerStreamServer) error {
-//	return nil
-//}
-//
-//func (s *GRPCService) Chat(_ foo.FooBarService_ChatServer) error { return nil }
