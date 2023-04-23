@@ -3,6 +3,7 @@ package tests
 import (
 	"context"
 	"google.golang.org/grpc/codes"
+	"google.golang.org/grpc/credentials/insecure"
 	"google.golang.org/grpc/status"
 	"google.golang.org/protobuf/types/known/timestamppb"
 	"homework9/internal/adapters/adfilter"
@@ -52,7 +53,8 @@ func GetClient(t *testing.T) (grpcPort.AdServiceClient, context.Context) {
 		cancel()
 	})
 
-	conn, err := grpc.DialContext(ctx, "", grpc.WithContextDialer(dialer), grpc.WithInsecure())
+	conn, err := grpc.DialContext(ctx, "", grpc.WithContextDialer(dialer),
+		grpc.WithTransportCredentials(insecure.NewCredentials()))
 	assert.NoError(t, err, "grpc.DialContext")
 
 	t.Cleanup(func() {
@@ -72,7 +74,7 @@ func TestGRPCCreateUser(t *testing.T) {
 	assert.Equal(t, "example@mail.com", res.Email)
 	assert.Equal(t, int64(3), res.UserId)
 
-	res, err = client.CreateUser(ctx, &grpcPort.UniversalUser{Nickname: "abc", Email: "cat@mail.com", UserId: 3})
+	_, err = client.CreateUser(ctx, &grpcPort.UniversalUser{Nickname: "abc", Email: "cat@mail.com", UserId: 3})
 	assert.ErrorIs(t, err, ErrorBadRequest)
 
 	res, err = client.CreateUser(ctx, &grpcPort.UniversalUser{Nickname: "qwerty", Email: "qwerty@mail.com", UserId: 5})
@@ -105,8 +107,8 @@ func TestGRPCChangeAdStatus(t *testing.T) {
 	a, _ := client.CreateUser(ctx, &grpcPort.UniversalUser{Nickname: "Tom", Email: "example@mail.com", UserId: 3})
 	b, _ := client.CreateUser(ctx, &grpcPort.UniversalUser{Nickname: "cat", Email: "cat@mail.com", UserId: 5})
 
-	ad, err := client.CreateAd(ctx, &grpcPort.CreateAdRequest{Title: "aba", Text: "caba", UserId: a.UserId})
-	_, err = client.ChangeAdStatus(ctx, &grpcPort.ChangeAdStatusRequest{
+	ad, _ := client.CreateAd(ctx, &grpcPort.CreateAdRequest{Title: "aba", Text: "caba", UserId: a.UserId})
+	_, err := client.ChangeAdStatus(ctx, &grpcPort.ChangeAdStatusRequest{
 		AdId: ad.Id, UserId: b.UserId, Published: ad.Published})
 	assert.ErrorIs(t, err, ErrorForbidden)
 	_, err = client.ChangeAdStatus(ctx, &grpcPort.ChangeAdStatusRequest{
@@ -128,8 +130,8 @@ func TestGRPCUpdateAd(t *testing.T) {
 	a, _ := client.CreateUser(ctx, &grpcPort.UniversalUser{Nickname: "Tom", Email: "example@mail.com", UserId: 3})
 	b, _ := client.CreateUser(ctx, &grpcPort.UniversalUser{Nickname: "cat", Email: "cat@mail.com", UserId: 5})
 
-	ad, err := client.CreateAd(ctx, &grpcPort.CreateAdRequest{Title: "aba", Text: "caba", UserId: a.UserId})
-	_, err = client.UpdateAd(ctx, &grpcPort.UpdateAdRequest{
+	ad, _ := client.CreateAd(ctx, &grpcPort.CreateAdRequest{Title: "aba", Text: "caba", UserId: a.UserId})
+	_, err := client.UpdateAd(ctx, &grpcPort.UpdateAdRequest{
 		AdId: ad.Id, Title: "new title", Text: "new text", UserId: b.UserId})
 	assert.ErrorIs(t, err, ErrorForbidden)
 	_, err = client.UpdateAd(ctx, &grpcPort.UpdateAdRequest{
@@ -151,8 +153,8 @@ func TestGRPCDeleteAd(t *testing.T) {
 	a, _ := client.CreateUser(ctx, &grpcPort.UniversalUser{Nickname: "Tom", Email: "example@mail.com", UserId: 3})
 	b, _ := client.CreateUser(ctx, &grpcPort.UniversalUser{Nickname: "cat", Email: "cat@mail.com", UserId: 5})
 
-	ad, err := client.CreateAd(ctx, &grpcPort.CreateAdRequest{Title: "aba", Text: "caba", UserId: a.UserId})
-	_, err = client.DeleteAd(ctx, &grpcPort.DeleteAdRequest{
+	ad, _ := client.CreateAd(ctx, &grpcPort.CreateAdRequest{Title: "aba", Text: "caba", UserId: a.UserId})
+	_, err := client.DeleteAd(ctx, &grpcPort.DeleteAdRequest{
 		AdId: ad.Id, UserId: b.UserId})
 	assert.ErrorIs(t, err, ErrorForbidden)
 	_, err = client.DeleteAd(ctx, &grpcPort.DeleteAdRequest{
@@ -173,8 +175,8 @@ func TestGRPCGetAdByID(t *testing.T) {
 
 	a, _ := client.CreateUser(ctx, &grpcPort.UniversalUser{Nickname: "Tom", Email: "example@mail.com", UserId: 3})
 
-	ad, err := client.CreateAd(ctx, &grpcPort.CreateAdRequest{Title: "aba", Text: "caba", UserId: a.UserId})
-	_, err = client.GetAdByID(ctx, &grpcPort.GetAdRequest{
+	ad, _ := client.CreateAd(ctx, &grpcPort.CreateAdRequest{Title: "aba", Text: "caba", UserId: a.UserId})
+	_, err := client.GetAdByID(ctx, &grpcPort.GetAdRequest{
 		Id: ad.Id + 1})
 	assert.ErrorIs(t, err, ErrorBadRequest)
 
@@ -192,8 +194,8 @@ func TestGRPCDeleteUserByID(t *testing.T) {
 
 	a, _ := client.CreateUser(ctx, &grpcPort.UniversalUser{Nickname: "Tom", Email: "example@mail.com", UserId: 3})
 
-	ad, err := client.CreateAd(ctx, &grpcPort.CreateAdRequest{Title: "aba", Text: "caba", UserId: a.UserId})
-	_, err = client.DeleteUserByID(ctx, &grpcPort.DeleteUserRequest{
+	ad, _ := client.CreateAd(ctx, &grpcPort.CreateAdRequest{Title: "aba", Text: "caba", UserId: a.UserId})
+	_, err := client.DeleteUserByID(ctx, &grpcPort.DeleteUserRequest{
 		Id: a.UserId + 1})
 	assert.ErrorIs(t, err, ErrorBadRequest)
 	_, err = client.GetAdByID(ctx, &grpcPort.GetAdRequest{
@@ -325,9 +327,9 @@ func TestGRPCFilterByAuthor(t *testing.T) {
 		UserId: 3, AdId: a.Id, Published: true})
 	b, _ = client.ChangeAdStatus(ctx, &grpcPort.ChangeAdStatusRequest{
 		UserId: 3, AdId: b.Id, Published: true})
-	c, _ = client.ChangeAdStatus(ctx, &grpcPort.ChangeAdStatusRequest{
+	_, _ = client.ChangeAdStatus(ctx, &grpcPort.ChangeAdStatusRequest{
 		UserId: 5, AdId: c.Id, Published: true})
-	d, _ = client.ChangeAdStatus(ctx, &grpcPort.ChangeAdStatusRequest{
+	_, _ = client.ChangeAdStatus(ctx, &grpcPort.ChangeAdStatusRequest{
 		UserId: 7, AdId: d.Id, Published: true})
 
 	ads, err := client.ListAds(ctx, &grpcPort.FilterRequest{AuthorId: 3})
@@ -369,13 +371,13 @@ func TestGRPCFilterByTime(t *testing.T) {
 	d, _ := client.CreateAd(ctx, &grpcPort.CreateAdRequest{UserId: 7,
 		Title: "alpha", Text: "beta"})
 
-	a, _ = client.ChangeAdStatus(ctx, &grpcPort.ChangeAdStatusRequest{
+	_, _ = client.ChangeAdStatus(ctx, &grpcPort.ChangeAdStatusRequest{
 		UserId: 3, AdId: a.Id, Published: true})
 	b, _ = client.ChangeAdStatus(ctx, &grpcPort.ChangeAdStatusRequest{
 		UserId: 3, AdId: b.Id, Published: true})
 	c, _ = client.ChangeAdStatus(ctx, &grpcPort.ChangeAdStatusRequest{
 		UserId: 5, AdId: c.Id, Published: true})
-	d, _ = client.ChangeAdStatus(ctx, &grpcPort.ChangeAdStatusRequest{
+	_, _ = client.ChangeAdStatus(ctx, &grpcPort.ChangeAdStatusRequest{
 		UserId: 7, AdId: d.Id, Published: true})
 
 	ads, err := client.ListAds(ctx, &grpcPort.FilterRequest{LDate: lTm, RDate: rTm})
