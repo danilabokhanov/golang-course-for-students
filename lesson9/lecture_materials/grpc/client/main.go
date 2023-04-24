@@ -3,11 +3,11 @@ package main
 import (
 	"context"
 	"fmt"
-	"gitlab.tcsbank.ru/a.krutyakov/lesson9/cmd/grpc/foo"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/credentials/insecure"
 	"google.golang.org/grpc/metadata"
 	"io"
+	"lecture9/grpc/foo"
 	"log"
 	"strconv"
 	"time"
