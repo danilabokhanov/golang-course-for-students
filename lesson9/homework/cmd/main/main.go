@@ -34,11 +34,13 @@ func main() {
 		log.Fatalf("failed to listen: %v", err)
 	}
 
+	a := app.NewApp(adrepo.New(), customer.New(), adfilter.New())
+
 	grpcServer := grpc.NewServer(grpc.ChainUnaryInterceptor(grpcPorts.UnaryInterceptor, grpcPorts.RecoveryInterceptor))
-	grpcService := grpcPorts.NewService(app.NewApp(adrepo.New(), customer.New(), adfilter.New()))
+	grpcService := grpcPorts.NewService(a)
 	grpcPorts.RegisterAdServiceServer(grpcServer, grpcService)
 
-	httpServer := httpgin.NewHTTPServer(httpPort, app.NewApp(adrepo.New(), customer.New(), adfilter.New()))
+	httpServer := httpgin.NewHTTPServer(httpPort, a)
 
 	eg, ctx := errgroup.WithContext(context.Background())
 
