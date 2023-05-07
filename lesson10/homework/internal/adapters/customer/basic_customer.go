@@ -7,9 +7,8 @@ import (
 )
 
 type BasicCustomer struct {
-	mx    *sync.RWMutex
-	mp    map[int64]user.User
-	curID int64
+	mx *sync.RWMutex
+	mp map[int64]user.User
 }
 
 func (d *BasicCustomer) Find(ctx context.Context, userID int64) (user.User, bool) {
