@@ -1,0 +1,104 @@
+package tests
+
+import (
+	"homework10/internal/adapters/adfilter"
+	"homework10/internal/adapters/adrepo"
+	"homework10/internal/adapters/customer"
+	"homework10/internal/app"
+	"strings"
+	"testing"
+
+	"github.com/stretchr/testify/assert"
+)
+
+func TestCreateAd_EmptyTitle(t *testing.T) {
+	client := getTestClient(app.NewApp(adrepo.New(), customer.New(), adfilter.New()))
+
+	_, _ = client.createUser(123, "nickname", "example@mail.com")
+
+	_, err := client.createAd(123, "", "world")
+	assert.ErrorIs(t, err, ErrBadRequest)
+}
+
+func TestCreateAd_TooLongTitle(t *testing.T) {
+	client := getTestClient(app.NewApp(adrepo.New(), customer.New(), adfilter.New()))
+
+	title := strings.Repeat("a", 101)
+
+	_, _ = client.createUser(123, "nickname", "example@mail.com")
+
+	_, err := client.createAd(123, title, "world")
+	assert.ErrorIs(t, err, ErrBadRequest)
+}
+
+func TestCreateAd_EmptyText(t *testing.T) {
+	client := getTestClient(app.NewApp(adrepo.New(), customer.New(), adfilter.New()))
+
+	_, _ = client.createUser(123, "nickname", "example@mail.com")
+
+	_, err := client.createAd(123, "title", "")
+	assert.ErrorIs(t, err, ErrBadRequest)
+}
+
+func TestCreateAd_TooLongText(t *testing.T) {
+	client := getTestClient(app.NewApp(adrepo.New(), customer.New(), adfilter.New()))
+
+	text := strings.Repeat("a", 501)
+
+	_, _ = client.createUser(123, "nickname", "example@mail.com")
+
+	_, err := client.createAd(123, "title", text)
+	assert.ErrorIs(t, err, ErrBadRequest)
+}
+
+func TestUpdateAd_EmptyTitle(t *testing.T) {
+	client := getTestClient(app.NewApp(adrepo.New(), customer.New(), adfilter.New()))
+
+	_, _ = client.createUser(123, "nickname", "example@mail.com")
+
+	resp, err := client.createAd(123, "hello", "world")
+	assert.NoError(t, err)
+
+	_, err = client.updateAd(123, resp.Data.ID, "", "new_world")
+	assert.ErrorIs(t, err, ErrBadRequest)
+}
+
+func TestUpdateAd_TooLongTitle(t *testing.T) {
+	client := getTestClient(app.NewApp(adrepo.New(), customer.New(), adfilter.New()))
+
+	_, _ = client.createUser(123, "nickname", "example@mail.com")
+
+	resp, err := client.createAd(123, "hello", "world")
+	assert.NoError(t, err)
+
+	title := strings.Repeat("a", 101)
+
+	_, err = client.updateAd(123, resp.Data.ID, title, "world")
+	assert.ErrorIs(t, err, ErrBadRequest)
+}
+
+func TestUpdateAd_EmptyText(t *testing.T) {
+	client := getTestClient(app.NewApp(adrepo.New(), customer.New(), adfilter.New()))
+
+	_, _ = client.createUser(123, "nickname", "example@mail.com")
+
+	resp, err := client.createAd(123, "hello", "world")
+	assert.NoError(t, err)
+
+	_, err = client.updateAd(123, resp.Data.ID, "title", "")
+	assert.ErrorIs(t, err, ErrBadRequest)
+}
+
+func TestUpdateAd_TooLongText(t *testing.T) {
+	client := getTestClient(app.NewApp(adrepo.New(), customer.New(), adfilter.New()))
+
+	text := strings.Repeat("a", 501)
+
+	_, _ = client.createUser(123, "nickname", "example@mail.com")
+
+	resp, err := client.createAd(123, "hello", "world")
+	assert.NoError(t, err)
+
+	_, err = client.updateAd(123, resp.Data.ID, "title", text)
+	assert.ErrorIs(t, err, ErrBadRequest)
+}
