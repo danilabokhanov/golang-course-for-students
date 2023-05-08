@@ -383,15 +383,17 @@ func (suite *TestConfig) TestGRPCFilterByTime() {
 
 	a, _ := suite.client.CreateAd(suite.ctx, &grpcPort.CreateAdRequest{UserId: 3,
 		Title: "aba", Text: "caba"})
-	time.Sleep(2 * time.Millisecond)
-	tm := time.Now()
-	lTm := timestamppb.New(tm.Add(-time.Millisecond))
-	rTm := timestamppb.New(tm.Add(time.Millisecond))
+	time.Sleep(time.Millisecond)
+	lTm := timestamppb.New(time.Now())
+	time.Sleep(time.Millisecond)
 	b, _ := suite.client.CreateAd(suite.ctx, &grpcPort.CreateAdRequest{UserId: 3,
 		Title: "bab", Text: "abac"})
+	time.Sleep(time.Millisecond)
 	c, _ := suite.client.CreateAd(suite.ctx, &grpcPort.CreateAdRequest{UserId: 5,
 		Title: "foo", Text: "bar"})
-	time.Sleep(2 * time.Millisecond)
+	time.Sleep(time.Millisecond)
+	rTm := timestamppb.New(time.Now())
+	time.Sleep(time.Millisecond)
 	d, _ := suite.client.CreateAd(suite.ctx, &grpcPort.CreateAdRequest{UserId: 7,
 		Title: "alpha", Text: "beta"})
 
