@@ -15,7 +15,7 @@ func TestSimpleApp_InsertAdd(t *testing.T) {
 	var AuthorID int64 = 3
 
 	type SimpleAppTest struct {
-		testName string
+		name     string
 		title    string
 		text     string
 		userID   int64
@@ -30,15 +30,21 @@ func TestSimpleApp_InsertAdd(t *testing.T) {
 	}
 
 	for _, test := range simpleAppTests {
-		a := app.NewApp(adrepo.New(), customer.New(), adfilter.New())
-		_, err := a.CreateUserByID(context.Background(), "nickname",
-			"example@mail.ru", AuthorID)
-		assert.NoError(t, err)
-		given, _ := a.CreateAd(context.Background(), test.title, test.text, test.userID)
-		assert.Equal(t, given.Title, test.expected.Title)
-		assert.Equal(t, given.Text, test.expected.Text)
-		assert.Equal(t, given.AuthorID, test.expected.AuthorID)
-		assert.Equal(t, given.Published, test.expected.Published)
+		test := test
+
+		t.Run(test.name, func(t *testing.T) {
+			t.Parallel()
+
+			a := app.NewApp(adrepo.New(), customer.New(), adfilter.New())
+			_, err := a.CreateUserByID(context.Background(), "nickname",
+				"example@mail.ru", AuthorID)
+			assert.NoError(t, err)
+			given, _ := a.CreateAd(context.Background(), test.title, test.text, test.userID)
+			assert.Equal(t, given.Title, test.expected.Title)
+			assert.Equal(t, given.Text, test.expected.Text)
+			assert.Equal(t, given.AuthorID, test.expected.AuthorID)
+			assert.Equal(t, given.Published, test.expected.Published)
+		})
 	}
 }
 
@@ -48,7 +54,7 @@ func TestSimpleApp_DeleteAdd(t *testing.T) {
 		AdID     int64 = 0
 	)
 	type SimpleAppTest struct {
-		testName string
+		name     string
 		id       int64
 		userID   int64
 		expected ads.Ad
@@ -64,14 +70,19 @@ func TestSimpleApp_DeleteAdd(t *testing.T) {
 	}
 
 	for _, test := range simpleAppTests {
-		a := app.NewApp(adrepo.New(), customer.New(), adfilter.New())
-		_, err := a.CreateUserByID(context.Background(), "nickname",
-			"example@mail.ru", AuthorID)
-		assert.NoError(t, err)
-		_, _ = a.CreateAd(context.Background(), "aba", "caba", test.userID)
+		test := test
 
-		given, _ := a.DeleteAd(context.Background(), test.id, test.userID)
-		assert.Equal(t, given.AuthorID, test.expected.AuthorID)
-		assert.Equal(t, given.ID, test.expected.ID)
+		t.Run(test.name, func(t *testing.T) {
+			t.Parallel()
+			a := app.NewApp(adrepo.New(), customer.New(), adfilter.New())
+			_, err := a.CreateUserByID(context.Background(), "nickname",
+				"example@mail.ru", AuthorID)
+			assert.NoError(t, err)
+			_, _ = a.CreateAd(context.Background(), "aba", "caba", test.userID)
+
+			given, _ := a.DeleteAd(context.Background(), test.id, test.userID)
+			assert.Equal(t, given.AuthorID, test.expected.AuthorID)
+			assert.Equal(t, given.ID, test.expected.ID)
+		})
 	}
 }

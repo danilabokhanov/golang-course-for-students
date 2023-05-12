@@ -17,7 +17,7 @@ const (
 func BenchmarkMapRepo(b *testing.B) {
 	ctx := context.Background()
 	mapRepo := adrepo.New()
-	for i := 0; i < Ads; i++ {
+	for i := 0; i < b.N; i++ {
 		_, _ = mapRepo.Add(ctx, fmt.Sprint("ad", i), "test ad", 1)
 	}
 }
@@ -25,7 +25,7 @@ func BenchmarkMapRepo(b *testing.B) {
 func BenchmarkBasicCustomer(b *testing.B) {
 	ctx := context.Background()
 	basicCustomer := customer.New()
-	for i := 0; i < Users; i++ {
+	for i := 0; i < b.N; i++ {
 		_, _ = basicCustomer.CreateByID(ctx, fmt.Sprint("user", i),
 			"example"+strconv.Itoa(i)+"@mail.ru", int64(i))
 	}
