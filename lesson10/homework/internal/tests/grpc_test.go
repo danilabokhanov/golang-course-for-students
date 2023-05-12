@@ -46,7 +46,9 @@ func (suite *TestConfig) SetupTest() {
 	grpcPort.RegisterAdServiceServer(suite.srv, svc)
 
 	go func() {
-		suite.Assert().NoError(suite.srv.Serve(suite.lis), "srv.Serve")
+		srv := suite.srv
+		lis := suite.lis
+		suite.Assert().NoError(srv.Serve(lis), "srv.Serve")
 	}()
 
 	dialer := func(context.Context, string) (net.Conn, error) {
