@@ -30,11 +30,7 @@ func TestSimpleApp_InsertAdd(t *testing.T) {
 	}
 
 	for _, test := range simpleAppTests {
-		test := test
-
 		t.Run(test.name, func(t *testing.T) {
-			t.Parallel()
-
 			a := app.NewApp(adrepo.New(), customer.New(), adfilter.New())
 			_, err := a.CreateUserByID(context.Background(), "nickname",
 				"example@mail.ru", AuthorID)
@@ -70,10 +66,7 @@ func TestSimpleApp_DeleteAdd(t *testing.T) {
 	}
 
 	for _, test := range simpleAppTests {
-		test := test
-
 		t.Run(test.name, func(t *testing.T) {
-			t.Parallel()
 			a := app.NewApp(adrepo.New(), customer.New(), adfilter.New())
 			_, err := a.CreateUserByID(context.Background(), "nickname",
 				"example@mail.ru", AuthorID)
