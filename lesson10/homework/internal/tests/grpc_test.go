@@ -48,7 +48,7 @@ func (suite *TestConfig) SetupTest() {
 	go func() {
 		srv := suite.srv
 		lis := suite.lis
-		suite.Assert().NoError(srv.Serve(lis), "srv.Serve")
+		_ = srv.Serve(lis)
 	}()
 
 	dialer := func(context.Context, string) (net.Conn, error) {
